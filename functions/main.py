@@ -44,40 +44,6 @@ def call_ml_model(bucket_name: str, video_path: str) -> tuple[str | None, list[s
         logging.error(f"Gagal memanggil ML model: {e}")
         raise
 
-def mock_ml_model(bucket_name: str, video_path: str) -> tuple[str | None, list[str]]:
-    """
-    Mock ML Model.
-    Menyimulasikan pemrosesan video, menyimpan hasilnya ke /processed_video,
-    dan mengembalikan URL video yang diproses serta daftar plat nomor.
-    """
-    logging.info(f"Model menganalisis video dari path: {video_path}")
-    
-    # Simulasikan deteksi plat nomor
-    random_plates = ["B 1234 BRG", "D 5678 XYZ"]
-    num_to_return = random.randint(0, 2) # Bisa jadi tidak ada plat yang terdeteksi
-    extracted_plates = random.sample(random_plates, num_to_return)
-    
-    if not extracted_plates:
-        logging.info("Model ML tidak menemukan plat nomor.")
-        return None, []
-
-    # Simulasikan pembuatan video yang telah diproses (misal: dengan bounding box)
-    # dan menyimpannya ke folder /processed_video.
-    # Di dunia nyata, ini akan menjadi file baru. Untuk mock, kita salin saja.
-    bucket = storage.bucket(bucket_name)
-    source_blob = bucket.blob(video_path)
-    
-    file_name = os.path.basename(video_path)
-    processed_video_path = f"processed_video/{file_name}"
-    
-    # Salin file ke lokasi baru untuk menyimulasikan hasil proses ML
-    destination_blob = bucket.copy_blob(source_blob, bucket, processed_video_path)
-    
-    processed_video_url = f"gs://{bucket_name}/{destination_blob.name}"
-    logging.info(f"Video yang diproses disimpan di: {processed_video_url}")
-
-    return processed_video_url, extracted_plates
-
 @storage_fn.on_object_finalized()
 def process_media_upload(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]):
     """
@@ -104,7 +70,7 @@ def process_media_upload(event: storage_fn.CloudEvent[storage_fn.StorageObjectDa
     logging.info(f"Video baru terdeteksi: {file_path}. Memulai proses")
 
     try:
-        # Ganti mockMLModel dengan pemanggilan model asli Anda
+        
         # processed_video_url, extracted_plates = mock_ml_model(bucket_name, file_path)
         processed_video_url, extracted_plates = call_ml_model(bucket_name, file_path)
 
