@@ -73,12 +73,13 @@ def process_media_upload(event: storage_fn.CloudEvent[storage_fn.StorageObjectDa
         
         # processed_video_url, extracted_plates = mock_ml_model(bucket_name, file_path)
         processed_video_url, extracted_plates = call_ml_model(bucket_name, file_path)
-
+        
+        bucket = storage.bucket(bucket_name)
+        original_video_blob = bucket.blob(file_path)
+        
         if not extracted_plates:
             logging.info("Tidak ada plat nomor terdeteksi. Menghapus video asli...")
-            bucket = storage.bucket(bucket_name)
-            blob = bucket.blob(file_path)
-            blob.delete()
+            original_video_blob.delete()
             logging.info(f"File asli {file_path} telah dihapus.")
             return
 
@@ -97,6 +98,10 @@ def process_media_upload(event: storage_fn.CloudEvent[storage_fn.StorageObjectDa
         write_time, ref = db.collection("incidents").add(incident_data)
 
         logging.info(f"Data insiden berhasil disimpan ke Firestore dengan ID: {ref.id} dengan sumber suara: {audio_source}")
+        
+        logging.info(f"Menghapus video asli: {file_path}")
+        original_video_blob.delete()
+        logging.info(f"File asli {file_path} berhasil dihapus.")
 
     except Exception as e:
         logging.error(f"Terjadi error saat memproses file: {e}")
